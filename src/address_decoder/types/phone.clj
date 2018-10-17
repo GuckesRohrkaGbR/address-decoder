@@ -2,16 +2,18 @@
 
 (defrecord phone [country prefix number])
 
+(declare prepend-zero)
 (defn make
   ([]
    (phone. "" "" ""))
 
   ([prefix number]
-   (phone. "" prefix number))
+   (phone. "" (prepend-zero prefix) number))
 
   ([country prefix number]
-   (phone. country prefix number)))
+   (phone. country (prepend-zero prefix) number)))
 
+;------------------ Helpers
 (defn- prepend-zero [prefix]
   (if (.startsWith prefix "0")
     prefix
@@ -22,7 +24,19 @@
     (.substring prefix 1)
     prefix))
 
-(defn din5008-local
+(defn- whitespace-first-item
+  [vector]
+  (assoc vector 0 ""))
+
+(defn- make-from-vector
+  [vector]
+  (apply make (take 3 vector)))
+
+
+;------------------ DIN5008 Handling - Local
+(def din5008-local-regex #"^(0[1-9]\d{1,3})\s([1-9]\d{2,})$")
+
+(defn to-din5008-local
   "Converts to DIN5009 format '0AAAA BBBBBB'"
   [phone]
   (str
@@ -30,7 +44,25 @@
     " "
     (:number phone)))
 
-(defn din5008-international
+(defn is-din5008-local
+  "Determines whether a raw number is in DIN5008 local format"
+  [raw]
+  (if (re-matches din5008-local-regex raw)
+    true
+    false))
+
+(defn from-din5008-local
+  "Parses a phone number from a DIN5008 local formatted string"
+  [raw]
+  (if (is-din5008-local raw)
+    (make-from-vector (whitespace-first-item (re-matches din5008-local-regex raw)))
+    nil))
+
+
+;------------------ DIN5008 Handling - International
+(def din5008-international-regex #"^(\+[1-9]{2})\s([1-9]\d{1,3})\s([1-9]\d{2,})$")
+
+(defn to-din5008-international
   "Converts to international DIN5009 format '+49 AAAA BBBBBB'"
   [phone]
   (str
@@ -40,7 +72,25 @@
     " "
     (:number phone)))
 
-(defn e123-local
+(defn is-din5008-international
+  "Determines whether a raw number is in DIN5008 local format"
+  [raw]
+  (if (re-matches din5008-international-regex raw)
+    true
+    false))
+
+(defn from-din5008-international
+  "Parses a phone number from a DIN5008 international formatted string"
+  [raw]
+  (if (is-din5008-international raw)
+    (make-from-vector (drop 1 (re-matches din5008-international-regex raw)))
+    nil))
+
+
+;------------------ E.123 Handling - Local
+(def e123-local-regex #"^\((0[1-9]{2,4})\)\s([1-9]\d{2,})$")
+
+(defn to-e123-local
   "Converts to E.123 format '(0AAAA) BBBBBB'"
   [phone]
   (str
@@ -49,13 +99,46 @@
     ") "
     (:number phone)))
 
-(defn e123-international
+(defn is-e123-local
+  "Determines whether a raw number is in E.123 local format"
+  [raw]
+  (if (re-matches e123-local-regex raw)
+    true
+    false))
+
+(defn from-e123-local
+  "Parses a phone number from a E.123 local formatted string"
+  [raw]
+  (if (is-e123-local raw)
+    (make-from-vector (whitespace-first-item (re-matches e123-local-regex raw)))
+    nil))
+
+
+;------------------ E.123 Handling - International
+(def e123-international-regex #"^(\+[1-9]{2})\s\(([1-9]{2,4})\)\s([1-9]\d{2,})$")
+
+(defn to-e123-international
   "Converts to international E.123 format '+49 AAAA BBBBBB'"
   [phone]
-  (din5008-international phone))
+  (to-din5008-international phone))
+
+(defn is-e123-international
+  "Determines whether a raw number is in E.123 international format"
+  [raw]
+  (if (re-matches e123-international-regex raw)
+    true
+    false))
+
+(defn from-e123-international
+  "Parses a phone number from a E.123 international formatted string"
+  [raw]
+  (if (is-e123-international raw)
+    (make-from-vector (drop 1 (re-matches e123-international-regex raw)))
+    nil))
 
 
-(defn microsoft
+;------------------ Microsoft format handling
+(defn to-microsoft
   "Converts to international E.123 format '+49 (AAAA) BBBBBB'"
   [phone]
   (str
@@ -68,29 +151,21 @@
 (defn is-microsoft
   "Determines whether a raw number is in microsoft format"
   [raw]
-  (if (re-matches #"^\+[1-9]{2}\s\([1-9]{2,4}\)\s[1-9]\d{2,}$" raw)
-    :true
-    :false))
+  (is-e123-international raw))
 
-(defn is-din5008-local
-  "Determines whether a raw number is in DIN5008 local format"
+(defn from-microsoft
+  "Parses a phone number from a microsoft formatted string"
   [raw]
-  (if (re-matches #"^0[1-9]\d{1,3}\s[1-9]\d{2,}$" raw)
-    :true
-    :false))
+  (from-e123-international raw))
 
-(defn is-din5008-international
-  "Determines whether a raw number is in DIN5008 local format"
-  [raw]
-  (if (re-matches #"^\+[1-9]{2}\s[1-9]\d{1,3}\s[1-9]\d{2,}$" raw)
-    :true
-    :false))
 
+;------------------ Parsing
 (defn parse
   "Parses a phone number automatically by guessing the format"
   [raw]
-  (make "" "" ""))
-
-
-
-
+  (cond
+    (is-din5008-local raw) (from-din5008-local raw)
+    (is-din5008-international raw) (from-din5008-international raw)
+    (is-e123-local raw) (from-e123-local raw)
+    (is-e123-international raw) (from-e123-international raw)
+    :else nil))
