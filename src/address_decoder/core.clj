@@ -1,7 +1,8 @@
-(ns address-decoder.core)
+(ns address-decoder.core
+  (:require [address-decoder.types.contact :as contact]))
 
 (defn parse
   "Parses address signatures"
   [inputString]
-  inputString)
+  (contact/parse inputString))
 
