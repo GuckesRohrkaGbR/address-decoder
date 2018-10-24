@@ -1,7 +1,7 @@
 (ns address-decoder.types.name-test
   (:require [clojure.test :refer :all])
-  (:require [address-decoder.types.contact-name :as contact-name]
-            [address-decoder.types.contact :as contact]))
+  (:require [address-decoder.types.contact-name :as contact-name]))
+
 
 (deftest contact-name-creation-test
   (testing "empty name creation"

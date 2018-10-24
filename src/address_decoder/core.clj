@@ -3,6 +3,6 @@
 
 (defn parse
   "Parses address signatures"
-  [inputString]
-  (contact/parse inputString))
+  [input-string]
+  (contact/parse input-string))
 
