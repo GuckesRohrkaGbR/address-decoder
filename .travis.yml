@@ -9,7 +9,7 @@ install:
 - npm install -g eclint
 
 script:
-- (lein with-profile +sample test)
+- (lein test cloverage)
 
 cache:
   directories:
