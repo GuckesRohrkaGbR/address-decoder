@@ -2,12 +2,16 @@
   (:require [clojure.test :refer :all])
   (:require [address-decoder.types.contact-name :as contact-name]))
 
-
 (deftest contact-name-creation-test
   (testing "empty name creation"
-    (is (= "" (:given-names (contact-name/make))))
-    (is (= "" (:surnames (contact-name/make))))
-    (is (= "" (:organization-name (contact-name/make)))))
+    (let [{:keys [given-names
+                  surnames
+                  organization-name]}
+          (contact-name/make)]
+
+      (is (= "" given-names))
+      (is (= "" surnames))
+      (is (= "" organization-name))))
 
   (testing "person name creation"
     (is (= "Max" (:given-names (contact-name/make "Max" "Muster"))))
@@ -18,14 +22,18 @@
     (is (= "Guckes Rohrka GbR" (:organization-name (contact-name/make "Guckes Rohrka GbR")))))
 
   (testing "contact person name creation"
-    (is (= "Max" (:given-names (contact-name/make "Guckes Rohrka GbR" "Max" "Muster"))))
-    (is (= "Muster" (:surnames (contact-name/make "Guckes Rohrka GbR" "Max" "Muster"))))
-    (is (= "Guckes Rohrka GbR" (:organization-name (contact-name/make "Guckes Rohrka GbR" "Max" "Muster"))))))
+    (let [{:keys [given-names
+                  surnames
+                  organization-name]}
+          (contact-name/make "Guckes Rohrka GbR" "Max" "Muster")]
+
+      (is (= "Max" given-names))
+      (is (= "Muster" surnames))
+      (is (= "Guckes Rohrka GbR" organization-name)))))
 
 (deftest contact-name-parsing
   (testing "company name parsing"
-    (letfn [
-            (is-organization
+    (letfn [(is-organization
               [org-name]
               (is (= org-name (:organization-name (contact-name/parse org-name)))))]
       (is-organization "Guckes Rohrka GbR")

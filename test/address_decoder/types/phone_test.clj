@@ -2,125 +2,186 @@
   (:require [clojure.test :refer :all])
   (:require [address-decoder.types.phone :as phone]))
 
+(def e123-int (phone/make "+49" "6123" "1234567"))
+(def wrong-zero (phone/make "+49" "06123" "1234567"))
+(def din-local (phone/make "06123" "1234567"))
+
+(def din-local-string "06123 1234567")
+(def din-int-string "+49 6123 1234567")
+(def e123-local-string "(06123) 1234567")
+(def microsoft-string "+49 (6123) 1234567")
+(def braced-wrong-zero "+49 (06123) 1234567")
+(def int-leading-zero-string "+49 06123 1234567")
+(def int-without-plus "49 (69) 123")
+(def local-without-zero "(6123) 1234567")
+(def e123-int-string "+49 (69) 123")
+
 (deftest phone-test
   (testing "empty phone number creation"
-    (is (= "" (:country (phone/make))))
-    (is (= "" (:prefix (phone/make))))
-    (is (= "" (:number (phone/make)))))
-
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/make)]
+      (is (= "" country))
+      (is (= "" prefix))
+      (is (= "" number))))
 
   (testing "local phone number creation"
-    (is (= "06123" (:prefix (phone/make "06123" "1234567"))))
-    (is (= "1234567" (:number (phone/make "06123" "1234567")))))
-
+    (let [{:keys [
+                  prefix
+                  number]}
+          din-local]
+      (is (= "06123" prefix))
+      (is (= "1234567" number))))
 
   (testing "global phone number creation"
-    (is (= "+49" (:country (phone/make "+49" "6123" "1234567"))))
-    (is (= "06123" (:prefix (phone/make "+49" "6123" "1234567"))))
-    (is (= "1234567" (:number (phone/make "+49" "6123" "1234567")))))
-
+    (let [{:keys [country
+                  prefix
+                  number]} e123-int]
+      (is (= "+49" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number))))
 
   (testing "DIN5008 conversion"
-    (is (= "06123 1234567" (phone/to-din5008-local (phone/make "+49" "6123" "1234567"))))
-    (is (= "06123 1234567" (phone/to-din5008-local (phone/make "+49" "06123" "1234567"))))
-    (is (= "06123 1234567" (phone/to-din5008-local (phone/make "06123" "1234567"))))
+    (is (= din-local-string (phone/to-din5008-local e123-int)))
+    (is (= din-local-string (phone/to-din5008-local wrong-zero)))
+    (is (= din-local-string (phone/to-din5008-local din-local)))
 
-    (is (= "+49 6123 1234567" (phone/to-din5008-international (phone/make "+49" "6123" "1234567"))))
-    (is (= "+49 6123 1234567" (phone/to-din5008-international (phone/make "+49" "06123" "1234567")))))
+    (is (= din-int-string (phone/to-din5008-international e123-int)))
+    (is (= din-int-string (phone/to-din5008-international wrong-zero))))
 
   (testing "E.123 conversion"
-    (is (= "(06123) 1234567" (phone/to-e123-local (phone/make "+49" "6123" "1234567"))))
-    (is (= "(06123) 1234567" (phone/to-e123-local (phone/make "+49" "06123" "1234567"))))
-    (is (= "(06123) 1234567" (phone/to-e123-local (phone/make "06123" "1234567"))))
+    (is (= e123-local-string (phone/to-e123-local e123-int)))
+    (is (= e123-local-string (phone/to-e123-local wrong-zero)))
+    (is (= e123-local-string (phone/to-e123-local din-local)))
 
-    (is (= "+49 6123 1234567" (phone/to-e123-international (phone/make "+49" "6123" "1234567"))))
-    (is (= "+49 6123 1234567" (phone/to-e123-international (phone/make "+49" "06123" "1234567")))))
+    (is (= din-int-string (phone/to-e123-international e123-int)))
+    (is (= din-int-string (phone/to-e123-international wrong-zero))))
 
   (testing "Microsoft conversion"
-    (is (= "+49 (6123) 1234567" (phone/to-microsoft (phone/make "+49" "6123" "1234567"))))
-    (is (= "+49 (6123) 1234567" (phone/to-microsoft (phone/make "+49" "06123" "1234567")))))
+    (is (= microsoft-string (phone/to-microsoft e123-int)))
+    (is (= microsoft-string (phone/to-microsoft wrong-zero))))
 
   (testing "Raw phone number identification"
-    (is (= true (phone/is-din5008-local "06123 1234567")))
-    (is (= false (phone/is-din5008-local "+49 (6123) 1234567")))
-    (is (= false (phone/is-din5008-local "+49 (06123) 1234567")))
-    (is (= false (phone/is-din5008-local "+49 6123 1234567")))
-    (is (= false (phone/is-din5008-local "+49 06123 1234567")))
-    (is (= false (phone/is-din5008-local "49 (69) 123")))
-    (is (= false (phone/is-din5008-local "(06123) 1234567")))
-    (is (= false (phone/is-din5008-local "(6123) 1234567")))
+    (is (= true (phone/is-din5008-local din-local-string)))
+    (is (= false (phone/is-din5008-local microsoft-string)))
+    (is (= false (phone/is-din5008-local braced-wrong-zero)))
+    (is (= false (phone/is-din5008-local din-int-string)))
+    (is (= false (phone/is-din5008-local int-leading-zero-string)))
+    (is (= false (phone/is-din5008-local int-without-plus)))
+    (is (= false (phone/is-din5008-local e123-local-string)))
+    (is (= false (phone/is-din5008-local local-without-zero)))
 
-    (is (= true (phone/is-din5008-international "+49 6123 1234567")))
-    (is (= false (phone/is-din5008-international "+49 (6123) 1234567")))
-    (is (= false (phone/is-din5008-international "+49 (06123) 1234567")))
-    (is (= false (phone/is-din5008-international "06123 1234567")))
-    (is (= false (phone/is-din5008-international "+49 06123 1234567")))
-    (is (= false (phone/is-din5008-international "49 (69) 123")))
-    (is (= false (phone/is-din5008-international "(06123) 1234567")))
-    (is (= false (phone/is-din5008-international "(6123) 1234567")))
+    (is (= true (phone/is-din5008-international din-int-string)))
+    (is (= false (phone/is-din5008-international microsoft-string)))
+    (is (= false (phone/is-din5008-international braced-wrong-zero)))
+    (is (= false (phone/is-din5008-international din-local-string)))
+    (is (= false (phone/is-din5008-international int-leading-zero-string)))
+    (is (= false (phone/is-din5008-international int-without-plus)))
+    (is (= false (phone/is-din5008-international e123-local-string)))
+    (is (= false (phone/is-din5008-international local-without-zero)))
 
-    (is (= true (phone/is-e123-local "(06123) 1234567")))
-    (is (= false (phone/is-e123-local "+49 (6123) 1234567")))
-    (is (= false (phone/is-e123-local "+49 (69) 123")))
-    (is (= false (phone/is-e123-local "+49 (06123) 1234567")))
-    (is (= false (phone/is-e123-local "+49 6123 1234567")))
-    (is (= false (phone/is-e123-local "+49 06123 1234567")))
-    (is (= false (phone/is-e123-local "49 (69) 123")))
-    (is (= false (phone/is-e123-local "06123 1234567")))
-    (is (= false (phone/is-e123-local "(6123) 1234567")))
+    (is (= true (phone/is-e123-local e123-local-string)))
+    (is (= false (phone/is-e123-local microsoft-string)))
+    (is (= false (phone/is-e123-local e123-int-string)))
+    (is (= false (phone/is-e123-local braced-wrong-zero)))
+    (is (= false (phone/is-e123-local din-int-string)))
+    (is (= false (phone/is-e123-local int-leading-zero-string)))
+    (is (= false (phone/is-e123-local int-without-plus)))
+    (is (= false (phone/is-e123-local din-local-string)))
+    (is (= false (phone/is-e123-local local-without-zero)))
 
-    (is (= true (phone/is-e123-international "+49 (6123) 1234567")))
-    (is (= true (phone/is-e123-international "+49 (69) 123")))
-    (is (= false (phone/is-e123-international "+49 (06123) 1234567")))
-    (is (= false (phone/is-e123-international "+49 6123 1234567")))
-    (is (= false (phone/is-e123-international "+49 06123 1234567")))
-    (is (= false (phone/is-e123-international "49 (69) 123")))
-    (is (= false (phone/is-e123-international "06123 1234567")))
-    (is (= false (phone/is-e123-international "(06123) 1234567")))
-    (is (= false (phone/is-e123-international "(6123) 1234567")))
+    (is (= true (phone/is-e123-international microsoft-string)))
+    (is (= true (phone/is-e123-international e123-int-string)))
+    (is (= false (phone/is-e123-international braced-wrong-zero)))
+    (is (= false (phone/is-e123-international din-int-string)))
+    (is (= false (phone/is-e123-international int-leading-zero-string)))
+    (is (= false (phone/is-e123-international int-without-plus)))
+    (is (= false (phone/is-e123-international din-local-string)))
+    (is (= false (phone/is-e123-international e123-local-string)))
+    (is (= false (phone/is-e123-international local-without-zero)))
 
-    (is (= true (phone/is-microsoft "+49 (6123) 1234567")))
-    (is (= true (phone/is-microsoft "+49 (69) 123")))
-    (is (= false (phone/is-microsoft "+49 (06123) 1234567")))
-    (is (= false (phone/is-microsoft "+49 6123 1234567")))
-    (is (= false (phone/is-microsoft "+49 06123 1234567")))
-    (is (= false (phone/is-microsoft "49 (69) 123")))
-    (is (= false (phone/is-microsoft "06123 1234567")))
-    (is (= false (phone/is-microsoft "(06123) 1234567")))
-    (is (= false (phone/is-microsoft "(6123) 1234567"))))
+    (is (= true (phone/is-microsoft microsoft-string)))
+    (is (= true (phone/is-microsoft e123-int-string)))
+    (is (= false (phone/is-microsoft braced-wrong-zero)))
+    (is (= false (phone/is-microsoft din-int-string)))
+    (is (= false (phone/is-microsoft int-leading-zero-string)))
+    (is (= false (phone/is-microsoft int-without-plus)))
+    (is (= false (phone/is-microsoft din-local-string)))
+    (is (= false (phone/is-microsoft e123-local-string)))
+    (is (= false (phone/is-microsoft local-without-zero))))
 
   (testing "Parsing"
-    (is (= "" (:country (phone/from-din5008-local "06123 1234567"))))
-    (is (= "06123" (:prefix (phone/from-din5008-local "06123 1234567"))))
-    (is (= "1234567" (:number (phone/from-din5008-local "06123 1234567"))))
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/from-din5008-local din-local-string)]
+      (is (= "" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
 
-    (is (= "+49" (:country (phone/from-din5008-international "+49 6123 1234567"))))
-    (is (= "06123" (:prefix (phone/from-din5008-international "+49 6123 1234567"))))
-    (is (= "1234567" (:number (phone/from-din5008-international "+49 6123 1234567"))))
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/from-din5008-international din-int-string)]
+      (is (= "+49" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
 
-    (is (= "06123" (:prefix (phone/from-e123-local "(06123) 12345"))))
-    (is (= "12345" (:number (phone/from-e123-local "(06123) 12345"))))
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/from-e123-local e123-local-string)]
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
 
-    (is (= "+49" (:country (phone/from-e123-international "+49 (6123) 1234567"))))
-    (is (= "06123" (:prefix (phone/from-e123-international "+49 (6123) 1234567"))))
-    (is (= "1234567" (:number (phone/from-e123-international "+49 (6123) 1234567"))))
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/from-e123-international microsoft-string)]
+      (is (= "+49" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
 
-    (is (= "+49" (:country (phone/from-microsoft "+49 (6123) 1234567"))))
-    (is (= "06123" (:prefix (phone/from-microsoft "+49 (6123) 1234567"))))
-    (is (= "1234567" (:number (phone/from-microsoft "+49 (6123) 1234567"))))
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/from-microsoft microsoft-string)]
+      (is (= "+49" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
 
-    (is (= "" (:country (phone/parse "06123 1234567"))))
-    (is (= "06123" (:prefix (phone/parse "06123 1234567"))))
-    (is (= "1234567" (:number (phone/parse "06123 1234567"))))
-    (is (= "+49" (:country (phone/parse "+49 6123 1234567"))))
-    (is (= "06123" (:prefix (phone/parse "+49 6123 1234567"))))
-    (is (= "1234567" (:number (phone/parse "+49 6123 1234567"))))
-    (is (= "06123" (:prefix (phone/parse "(06123) 12345"))))
-    (is (= "12345" (:number (phone/parse "(06123) 12345"))))
-    (is (= "+49" (:country (phone/parse "+49 (6123) 1234567"))))
-    (is (= "06123" (:prefix (phone/parse "+49 (6123) 1234567"))))
-    (is (= "1234567" (:number (phone/parse "+49 (6123) 1234567"))))
-    (is (= "+49" (:country (phone/parse "+49 (6123) 1234567"))))
-    (is (= "06123" (:prefix (phone/parse "+49 (6123) 1234567"))))
-    (is (= "1234567" (:number (phone/parse "+49 (6123) 1234567"))))
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/parse din-local-string)]
+      (is (= "" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
+
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/parse din-int-string)]
+      (is (= "+49" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
+
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/parse e123-local-string)]
+      (is (= "" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
+
+    (let [{:keys [country
+                  prefix
+                  number]}
+          (phone/parse microsoft-string)]
+      (is (= "+49" country))
+      (is (= "06123" prefix))
+      (is (= "1234567" number)))
+
     (is (= nil (phone/parse "not-valid")))))
+

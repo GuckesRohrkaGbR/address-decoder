@@ -23,10 +23,10 @@
   "parses complete strings like post addresses or mail
   signatures into machine readable contact data"
   [contact-string]
-  (let [split (split-name-and-address contact-string)]
-    (let [cont-name (contact-name/parse (first split))
+  (let [split (split-name-and-address contact-string)
+        cont-name (contact-name/parse (first split))
           addr (address/parse (nth split 1))]
-      (make cont-name addr nil))))
+      (make cont-name addr nil)))
 
 
 
