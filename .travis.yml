@@ -1,1 +1,34 @@
 language: clojure
+lein: 2.8.1
+sudo: false
+
+install:
+- . $HOME/.nvm/nvm.sh
+- nvm install stable
+- nvm use stable
+- npm install -g eclint
+
+before_script:
+- eclint check .* **
+- |
+  (cd cloverage && \
+      lein do cljfmt check, \
+              eastwood "{:exclude-namespaces [cloverage.sample.exercise-instrumentation]}", \
+              eastwood "{:namespaces [cloverage.sample.exercise-instrumentation] \
+                         :exclude-linters [:unused-ret-vals \
+                                           :suspicious-test \
+                                           :constant-test \
+                                           :wrong-pre-post]}", \
+              kibit)
+- (cd lein-cloverage && lein do cljfmt check, eastwood, kibit)
+
+script:
+- (cd cloverage && lein with-profile +sample test)
+- (cd lein-cloverage && lein test)
+
+cache:
+  directories:
+  - $HOME/.m2
+
+jdk:
+- oraclejdk8
