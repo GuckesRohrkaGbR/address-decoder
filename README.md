@@ -1,3 +1,3 @@
 # address-decoder
 
-![BuildStatus](https://travis-ci.com/GuckesRohrkaGbR/address-decoder.svg?branch=master)
+[![BuildStatus](https://travis-ci.com/GuckesRohrkaGbR/address-decoder.svg?branch=master)](https://travis-ci.com/GuckesRohrkaGbR/address-decoder)

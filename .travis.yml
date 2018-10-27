@@ -1,19 +1,1 @@
 language: clojure
-lein: 2.8.1
-sudo: false
-
-install:
-- . $HOME/.nvm/nvm.sh
-- nvm install stable
-- nvm use stable
-- npm install -g eclint
-
-script:
-- (lein test cloverage)
-
-cache:
-  directories:
-  - $HOME/.m2
-
-jdk:
-- oraclejdk8
