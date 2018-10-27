@@ -1,17 +1,20 @@
 (ns address-decoder.types.phone)
 
-(defrecord phone [country prefix number])
+(defrecord phone [country prefix number extension])
 
 (declare prepend-zero)
 (defn make
   ([]
-   (phone. "" "" ""))
+   (phone. "" "" "" ""))
 
   ([prefix number]
-   (phone. "" (prepend-zero prefix) number))
+   (phone. "" (prepend-zero prefix) number ""))
 
   ([country prefix number]
-   (phone. country (prepend-zero prefix) number)))
+   (phone. country (prepend-zero prefix) number ""))
+
+  ([country prefix number extension]
+   (phone. country (prepend-zero prefix) number extension)))
 
 ;------------------ Helpers
 (defn- prepend-zero [prefix]
@@ -30,11 +33,11 @@
 
 (defn- make-from-vector
   [vector]
-  (apply make (take 3 vector)))
+  (apply make (take 4 vector)))
 
 
 ;------------------ DIN5008 Handling - Local
-(def din5008-local-regex #"^(0[1-9]\d{1,3})\s([1-9]\d{2,})$")
+(def din5008-local-regex #"^(0[1-9]\d{1,3})\s([1-9]\d{2,})(?:-(\d+))?$")
 
 (defn to-din5008-local
   "Converts to DIN5009 format '0AAAA BBBBBB'"
@@ -42,7 +45,10 @@
   (str
     (prepend-zero (:prefix phone))
     " "
-    (:number phone)))
+    (:number phone)
+    (when (not (= "" (:extension phone)))
+      (str "-" (:extension phone)))))
+
 
 (defn is-din5008-local
   "Determines whether a raw number is in DIN5008 local format"
@@ -55,7 +61,9 @@
   "Parses a phone number from a DIN5008 local formatted string"
   [raw]
   (when (is-din5008-local raw)
-    (make-from-vector (whitespace-first-item (re-matches din5008-local-regex raw)))))
+    (make-from-vector
+      (whitespace-first-item
+        (re-matches din5008-local-regex raw)))))
 
 
 ;------------------ DIN5008 Handling - International
