@@ -54,9 +54,8 @@
 (defn from-din5008-local
   "Parses a phone number from a DIN5008 local formatted string"
   [raw]
-  (if (is-din5008-local raw)
-    (make-from-vector (whitespace-first-item (re-matches din5008-local-regex raw)))
-    nil))
+  (when (is-din5008-local raw)
+    (make-from-vector (whitespace-first-item (re-matches din5008-local-regex raw)))))
 
 
 ;------------------ DIN5008 Handling - International
@@ -82,9 +81,8 @@
 (defn from-din5008-international
   "Parses a phone number from a DIN5008 international formatted string"
   [raw]
-  (if (is-din5008-international raw)
-    (make-from-vector (drop 1 (re-matches din5008-international-regex raw)))
-    nil))
+  (when (is-din5008-international raw)
+    (make-from-vector (drop 1 (re-matches din5008-international-regex raw)))))
 
 
 ;------------------ E.123 Handling - Local
@@ -109,9 +107,8 @@
 (defn from-e123-local
   "Parses a phone number from a E.123 local formatted string"
   [raw]
-  (if (is-e123-local raw)
-    (make-from-vector (whitespace-first-item (re-matches e123-local-regex raw)))
-    nil))
+  (when (is-e123-local raw)
+    (make-from-vector (whitespace-first-item (re-matches e123-local-regex raw)))))
 
 
 ;------------------ E.123 Handling - International
@@ -132,9 +129,8 @@
 (defn from-e123-international
   "Parses a phone number from a E.123 international formatted string"
   [raw]
-  (if (is-e123-international raw)
-    (make-from-vector (drop 1 (re-matches e123-international-regex raw)))
-    nil))
+  (when (is-e123-international raw)
+    (make-from-vector (drop 1 (re-matches e123-international-regex raw)))))
 
 
 ;------------------ Microsoft format handling
